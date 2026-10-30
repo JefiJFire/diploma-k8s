@@ -1,0 +1,47 @@
+# Ограниченный доступ для CI/CD: только обновление Deployment приложения в namespace diploma
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ci-deployer
+  namespace: diploma
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ci-deployer
+  namespace: diploma
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    resourceNames: ["diploma-app"]
+    verbs: ["get", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ci-deployer
+  namespace: diploma
+subjects:
+  - kind: ServiceAccount
+    name: ci-deployer
+    namespace: diploma
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ci-deployer
+---
+# Долгоживущий токен для ServiceAccount (kubectl create token живёт ограниченное время)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ci-deployer-token
+  namespace: diploma
+  annotations:
+    kubernetes.io/service-account.name: ci-deployer
+type: kubernetes.io/service-account-token
