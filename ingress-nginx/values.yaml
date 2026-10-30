@@ -1,0 +1,32 @@
+# ingress-nginx на рабочем узле worker1 через hostPort (без Network Load Balancer).
+# Порты 80 и 443 открываются прямо на ВМ worker1 (у неё статический публичный IP).
+controller:
+  kind: Deployment
+  replicaCount: 1
+
+  nodeSelector:
+    kubernetes.io/hostname: worker1
+
+  hostPort:
+    enabled: true
+    ports:
+      http: 80
+      https: 443
+
+  # Внешний балансировщик не нужен
+  service:
+    type: ClusterIP
+
+  ingressClassResource:
+    name: nginx
+    default: true
+
+  admissionWebhooks:
+    enabled: false
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi

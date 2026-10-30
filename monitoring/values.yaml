@@ -1,0 +1,105 @@
+# kube-prometheus-stack: Prometheus, Alertmanager, Grafana, node-exporter, kube-state-metrics.
+# Тяжёлые компоненты размещаются на узле с меткой role=monitoring.
+# Пароль Grafana в репозитории не хранится: секрет grafana-admin создаёт `make monitoring`.
+
+defaultRules:
+  rules:
+    # В кластере, установленном Kubespray, эти компоненты слушают метрики только на localhost,
+    # поэтому не мониторим их и отключаем соответствующие правила, чтобы не было постоянных алертов
+    etcd: false
+    kubeControllerManager: false
+    kubeSchedulerAlerting: false
+    kubeSchedulerRecording: false
+    kubeProxy: false
+
+kubeEtcd:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+prometheusOperator:
+  nodeSelector:
+    role: monitoring
+  admissionWebhooks:
+    enabled: false
+  tls:
+    enabled: false
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      memory: 192Mi
+
+prometheus:
+  prometheusSpec:
+    nodeSelector:
+      role: monitoring
+    retention: 12h
+    # без PVC: данные на emptyDir (для учебного стенда достаточно)
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    resources:
+      requests:
+        cpu: 100m
+        memory: 768Mi
+      limits:
+        memory: 1536Mi
+
+alertmanager:
+  alertmanagerSpec:
+    nodeSelector:
+      role: monitoring
+    resources:
+      requests:
+        cpu: 10m
+        memory: 48Mi
+      limits:
+        memory: 128Mi
+
+grafana:
+  nodeSelector:
+    role: monitoring
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  grafana.ini:
+    server:
+      root_url: "%(protocol)s://%(domain)s/grafana/"
+      serve_from_sub_path: true
+  # Доступ по http://<публичный IP worker1>/grafana на порту 80
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    path: /grafana
+    pathType: Prefix
+    hosts: []
+  resources:
+    requests:
+      cpu: 50m
+      memory: 192Mi
+    limits:
+      memory: 384Mi
+
+kube-state-metrics:
+  nodeSelector:
+    role: monitoring
+  resources:
+    requests:
+      cpu: 10m
+      memory: 48Mi
+    limits:
+      memory: 128Mi
+
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 24Mi
+    limits:
+      memory: 64Mi
