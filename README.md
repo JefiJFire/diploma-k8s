@@ -76,12 +76,13 @@ kubectl apply -k .
 ```
 Позже этот шаг выполняет CI/CD при создании git-тега.
 
-## Замечания
+## CI/CD: доступ для деплоя
 
-- **ingress-nginx закрыт сообществом**: с марта 2026 проект не получает исправлений безопасности
-  ([объявление Kubernetes](https://www.kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/)). Установленные
-  развёртывания продолжают работать, для учебного стенда это приемлемо. Для замены подойдёт любой другой Ingress-контроллер
-  (например, Traefik): изменятся `ingress-nginx/values.yaml` и поле `ingressClassName` в манифестах.
-- Если `hostPort` не откроет порт 80 на worker1, в `ingress-nginx/values.yaml` вместо него можно включить
-  `controller.hostNetwork: true` и `controller.dnsPolicy: ClusterFirstWithHostNet`.
-- Метрики etcd, scheduler, controller-manager и kube-proxy отключены: в кластере Kubespray они слушают только localhost.
+Приложение разворачивает GitHub Actions (репозиторий `diploma-app`) при создании git-тега `v*`. Права ограничены:
+ServiceAccount `ci-deployer` может только менять Deployment `diploma-app` в namespace `diploma`.
+
+```bash
+cd diploma-k8s
+./ci/make-kubeconfig.sh <публичный IP мастера>   # печатает base64; вывод -> секрет KUBE_CONFIG
+```
+После `terraform destroy` и `apply` IP мастера и токен меняются: скрипт нужно запустить заново и обновить секрет.
